@@ -1,0 +1,21 @@
+# Build / IDE
+target/
+.idea/
+*.iml
+.vscode/
+.quarkus/
+
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.jks
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
