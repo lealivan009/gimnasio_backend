@@ -53,14 +53,12 @@ public class AttendanceResource {
 
     @POST
     @Path("/ingreso")
-    @RolesAllowed({"PROFESOR", "ADMIN"})
     public AttendanceResponse checkIn(@QueryParam("studentId") String studentId) {
         return attendanceService.checkIn(currentUser.require(), studentId);
     }
 
     @POST
     @Path("/egreso")
-    @RolesAllowed({"PROFESOR", "ADMIN"})
     public AttendanceResponse checkOut(@QueryParam("studentId") String studentId) {
         return attendanceService.checkOut(currentUser.require(), studentId);
     }

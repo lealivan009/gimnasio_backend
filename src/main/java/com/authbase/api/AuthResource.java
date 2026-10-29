@@ -7,6 +7,7 @@ import com.authbase.api.dto.LoginRequest;
 import com.authbase.api.dto.MessageResponse;
 import com.authbase.api.dto.RefreshRequest;
 import com.authbase.api.dto.RegisterRequest;
+import com.authbase.api.dto.RegisterResponse;
 import com.authbase.api.dto.ResetPasswordRequest;
 import com.authbase.api.dto.UpdateProfileRequest;
 import com.authbase.api.dto.UserResponse;
@@ -44,7 +45,7 @@ public class AuthResource {
     @POST
     @Path("/register")
     @Operation(summary = "Crear una cuenta")
-    public AuthResponse register(@Valid RegisterRequest request) {
+    public RegisterResponse register(@Valid RegisterRequest request) {
         return authService.register(request);
     }
 

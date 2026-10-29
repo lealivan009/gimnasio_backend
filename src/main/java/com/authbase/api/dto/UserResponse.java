@@ -30,7 +30,8 @@ public record UserResponse(
         String specialties,
         String biography,
         String socialLinks,
-        String certifications
+        String certifications,
+        boolean approved
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -56,7 +57,8 @@ public record UserResponse(
                 user.specialties,
                 user.biography,
                 user.socialLinks,
-                user.certifications
+                user.certifications,
+                user.isApproved()
         );
     }
 }

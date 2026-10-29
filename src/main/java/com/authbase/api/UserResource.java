@@ -24,6 +24,8 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+import java.util.List;
+
 @Path("/api/users")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -49,6 +51,22 @@ public class UserResource {
             @QueryParam("role") Role role
     ) {
         return userService.list(q, page, size, enabled, role);
+    }
+
+    @GET
+    @Path("/pendientes")
+    @RolesAllowed({"ADMIN", "PROFESOR"})
+    @Operation(summary = "Cuentas que todavía no fueron aprobadas")
+    public List<UserResponse> pending() {
+        return userService.pending();
+    }
+
+    @POST
+    @Path("/{id}/aprobar")
+    @RolesAllowed({"ADMIN", "PROFESOR"})
+    @Operation(summary = "Aprobar una cuenta")
+    public UserResponse approve(@PathParam("id") String id) {
+        return userService.approve(id);
     }
 
     @GET

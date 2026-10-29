@@ -99,6 +99,7 @@ public class UserService {
         user.lastName = request.lastName().trim();
         user.passwordHash = passwordHasher.hash(request.password());
         user.role = request.role() == null ? Role.ALUMNO : request.role();
+        user.approved = true;
         UserProfiles.set(
                 user,
                 request.documentNumber(),
@@ -173,6 +174,18 @@ public class UserService {
                 RefreshToken.revokeAllForUser(user);
             }
         }
+        return UserResponse.from(user);
+    }
+
+    public List<UserResponse> pending() {
+        List<User> users = User.list("deletedAt is null and approved = false order by createdAt");
+        return users.stream().map(UserResponse::from).toList();
+    }
+
+    @Transactional
+    public UserResponse approve(String id) {
+        User user = requireUser(id);
+        user.approved = true;
         return UserResponse.from(user);
     }
 

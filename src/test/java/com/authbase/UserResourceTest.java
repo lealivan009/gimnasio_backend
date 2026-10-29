@@ -185,7 +185,7 @@ class UserResourceTest {
     }
 
     private String register(String email, String firstName) {
-        return given()
+        String id = given()
                 .contentType(ContentType.JSON)
                 .body("""
                         {
@@ -200,7 +200,17 @@ class UserResourceTest {
                 .then()
                 .statusCode(200)
                 .extract()
-                .path("accessToken");
+                .path("user.id");
+        String admin = login("admin@example.com", "Admin1234!");
+        given()
+                .header("Authorization", "Bearer " + admin)
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .when()
+                .post("/api/users/" + id + "/aprobar")
+                .then()
+                .statusCode(200);
+        return login(email, "Secret123");
     }
 
     private String login(String email, String password) {

@@ -73,12 +73,14 @@ public class AttendanceService {
 
     @Transactional
     public AttendanceResponse checkIn(User actor, String studentId) {
-        if (!actor.role.isStaff()) {
-            throw ApiException.forbidden("FORBIDDEN", "La asistencia la carga el profesor");
-        }
-        User student = requireStudent(studentId);
+        User student = resolveStudent(actor, studentId);
         if (openToday(student.id) != null) {
-            throw ApiException.conflict("YA_ADENTRO", "Ese alumno ya está adentro");
+            throw ApiException.conflict(
+                    "YA_ADENTRO",
+                    actor.role.isStaff()
+                            ? "Ese alumno ya está adentro"
+                            : "Ya registraste tu ingreso y todavía no marcaste la salida"
+            );
         }
         GymConfig config = GymConfig.current();
         if (!gymConfigService.isOpenNow()) {
@@ -114,16 +116,28 @@ public class AttendanceService {
 
     @Transactional
     public AttendanceResponse checkOut(User actor, String studentId) {
-        if (!actor.role.isStaff()) {
-            throw ApiException.forbidden("FORBIDDEN", "La asistencia la carga el profesor");
-        }
-        User student = requireStudent(studentId);
+        User student = resolveStudent(actor, studentId);
         AttendanceLog open = openToday(student.id);
         if (open == null) {
-            throw ApiException.badRequest("SIN_INGRESO", "Ese alumno no está adentro");
+            throw ApiException.badRequest(
+                    "SIN_INGRESO",
+                    actor.role.isStaff()
+                            ? "Ese alumno no está adentro"
+                            : "No tenés un ingreso abierto para marcar la salida"
+            );
         }
         open.checkOutTime = Instant.now();
         return toResponse(open);
+    }
+
+    private User resolveStudent(User actor, String studentId) {
+        if (actor.role.isStudent()) {
+            return actor;
+        }
+        if (!actor.role.isStaff()) {
+            throw ApiException.forbidden("FORBIDDEN", "No podés cargar la asistencia");
+        }
+        return requireStudent(studentId);
     }
 
     private User requireStudent(String studentId) {

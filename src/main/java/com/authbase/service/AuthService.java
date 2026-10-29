@@ -6,6 +6,7 @@ import com.authbase.api.dto.ForgotPasswordRequest;
 import com.authbase.api.dto.LoginRequest;
 import com.authbase.api.dto.RefreshRequest;
 import com.authbase.api.dto.RegisterRequest;
+import com.authbase.api.dto.RegisterResponse;
 import com.authbase.api.dto.ResetPasswordRequest;
 import com.authbase.api.dto.UpdateProfileRequest;
 import com.authbase.api.dto.UserResponse;
@@ -66,7 +67,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
         if (!settingsService.current().allowPublicRegistration) {
             throw ApiException.forbidden(
                     "REGISTRATION_DISABLED",
@@ -86,6 +87,7 @@ public class AuthService {
         user.lastName = request.lastName().trim();
         user.passwordHash = passwordHasher.hash(request.password());
         user.role = Role.ALUMNO;
+        user.approved = false;
         UserProfiles.set(
                 user,
                 request.documentNumber(),
@@ -97,8 +99,10 @@ public class AuthService {
                 request.postalCode()
         );
         user.persist();
-
-        return issueSession(user);
+        return new RegisterResponse(
+                "Tu cuenta quedó creada. Cuando el profesor o el administrador la apruebe, vas a poder entrar.",
+                UserResponse.from(user)
+        );
     }
 
     @Transactional
@@ -125,6 +129,12 @@ public class AuthService {
             }
             throw invalidCredentials();
         }
+        if (!user.isApproved()) {
+            throw ApiException.forbidden(
+                    "CUENTA_PENDIENTE",
+                    "Tu cuenta todavía no fue aprobada. Cuando el profesor o el administrador la habilite, vas a poder entrar."
+            );
+        }
 
         user.failedLoginAttempts = 0;
         user.lockedUntil = null;
@@ -148,6 +158,13 @@ public class AuthService {
         if (user.isDeleted() || !user.enabled) {
             stored.revoked = true;
             throw ApiException.forbidden("ACCOUNT_DISABLED", "La cuenta está deshabilitada");
+        }
+        if (!user.isApproved()) {
+            stored.revoked = true;
+            throw ApiException.forbidden(
+                    "CUENTA_PENDIENTE",
+                    "Tu cuenta todavía no fue aprobada. Cuando el profesor o el administrador la habilite, vas a poder entrar."
+            );
         }
 
         stored.revoked = true;
@@ -228,7 +245,7 @@ public class AuthService {
 
         QuarkusTransaction.requiringNew().run(() -> {
             User user = User.findByEmail(email).orElse(null);
-            if (user == null || !user.enabled) {
+            if (user == null || !user.enabled || !user.isApproved()) {
                 return;
             }
 
@@ -270,6 +287,13 @@ public class AuthService {
         if (user.isDeleted() || !user.enabled) {
             stored.used = true;
             throw ApiException.forbidden("ACCOUNT_DISABLED", "La cuenta está deshabilitada");
+        }
+        if (!user.isApproved()) {
+            stored.used = true;
+            throw ApiException.forbidden(
+                    "CUENTA_PENDIENTE",
+                    "Tu cuenta todavía no fue aprobada. Cuando el profesor o el administrador la habilite, vas a poder entrar."
+            );
         }
 
         passwordPolicy.validate(request.newPassword());

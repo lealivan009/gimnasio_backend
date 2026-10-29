@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 @QuarkusTest
 class AuthResourceTest {
@@ -15,7 +16,7 @@ class AuthResourceTest {
     void registerLoginAndMe() {
         String email = "user-" + System.nanoTime() + "@example.com";
 
-        String accessToken = given()
+        String userId = given()
                 .contentType(ContentType.JSON)
                 .body("""
                         {
@@ -29,11 +30,37 @@ class AuthResourceTest {
                 .post("/api/auth/register")
                 .then()
                 .statusCode(200)
-                .body("accessToken", notNullValue())
-                .body("refreshToken", notNullValue())
+                .body("message", equalTo("Tu cuenta quedó creada. Cuando el profesor o el administrador la apruebe, vas a poder entrar."))
                 .body("user.email", equalTo(email))
+                .body("accessToken", nullValue())
                 .extract()
-                .path("accessToken");
+                .path("user.id");
+
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "email": "%s",
+                          "password": "Secret123"
+                        }
+                        """.formatted(email))
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(403)
+                .body("error", equalTo("CUENTA_PENDIENTE"));
+
+        String admin = login("admin@example.com", "Admin1234!");
+        given()
+                .header("Authorization", "Bearer " + admin)
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .when()
+                .post("/api/users/" + userId + "/aprobar")
+                .then()
+                .statusCode(200);
+
+        String accessToken = login(email, "Secret123");
 
         given()
                 .contentType(ContentType.JSON)
@@ -63,7 +90,7 @@ class AuthResourceTest {
     void registerAndUpdateProfile() {
         String email = "profile-" + System.nanoTime() + "@example.com";
 
-        String accessToken = given()
+        String userId = given()
                 .contentType(ContentType.JSON)
                 .body("""
                         {
@@ -87,7 +114,19 @@ class AuthResourceTest {
                 .body("user.phone", equalTo("1144445555"))
                 .body("user.city", equalTo("CABA"))
                 .extract()
-                .path("accessToken");
+                .path("user.id");
+
+        String admin = login("admin@example.com", "Admin1234!");
+        given()
+                .header("Authorization", "Bearer " + admin)
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .when()
+                .post("/api/users/" + userId + "/aprobar")
+                .then()
+                .statusCode(200);
+
+        String accessToken = login(email, "Secret123");
 
         given()
                 .header("Authorization", "Bearer " + accessToken)
@@ -181,5 +220,22 @@ class AuthResourceTest {
                 .then()
                 .statusCode(400)
                 .body("error", equalTo("INVALID_RESET_TOKEN"));
+    }
+
+    private String login(String email, String password) {
+        return given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "email": "%s",
+                          "password": "%s"
+                        }
+                        """.formatted(email, password))
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("accessToken");
     }
 }

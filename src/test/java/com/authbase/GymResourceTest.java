@@ -609,9 +609,16 @@ class GymResourceTest {
             given()
                     .header("Authorization", "Bearer " + student)
                     .when()
+                    .post("/api/asistencia/ingreso")
+                    .then()
+                    .statusCode(200);
+
+            given()
+                    .header("Authorization", "Bearer " + admin)
+                    .when()
                     .post("/api/asistencia/ingreso?studentId=" + studentId)
                     .then()
-                    .statusCode(403);
+                    .statusCode(409);
 
             given()
                     .header("Authorization", "Bearer " + student)
@@ -627,13 +634,6 @@ class GymResourceTest {
                     .then()
                     .statusCode(400)
                     .body("message", equalTo("Solo podés cargar el peso los días que tuviste presente"));
-
-            given()
-                    .header("Authorization", "Bearer " + admin)
-                    .when()
-                    .post("/api/asistencia/ingreso?studentId=" + studentId)
-                    .then()
-                    .statusCode(200);
 
             given()
                     .header("Authorization", "Bearer " + student)
@@ -697,7 +697,7 @@ class GymResourceTest {
     }
 
     private String register(String email) {
-        return given()
+        String id = given()
                 .contentType(ContentType.JSON)
                 .body("""
                         {
@@ -712,7 +712,17 @@ class GymResourceTest {
                 .then()
                 .statusCode(200)
                 .extract()
-                .path("accessToken");
+                .path("user.id");
+        String admin = login("admin@example.com", "Admin1234!");
+        given()
+                .header("Authorization", "Bearer " + admin)
+                .contentType(ContentType.JSON)
+                .body("{}")
+                .when()
+                .post("/api/users/" + id + "/aprobar")
+                .then()
+                .statusCode(200);
+        return login(email, "Secret123");
     }
 
     private String login(String email, String password) {

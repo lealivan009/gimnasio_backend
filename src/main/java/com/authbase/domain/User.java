@@ -89,6 +89,14 @@ public class User extends PanacheEntityBase {
     @Column(name = "enabled", nullable = false)
     public boolean enabled = true;
 
+    /** Null means approved. Public registration sets false until a professor or admin approves. */
+    @Column(name = "approved")
+    public Boolean approved;
+
+    public boolean isApproved() {
+        return approved == null || approved;
+    }
+
     @Column(name = "failed_login_attempts", nullable = false)
     public int failedLoginAttempts = 0;
 
