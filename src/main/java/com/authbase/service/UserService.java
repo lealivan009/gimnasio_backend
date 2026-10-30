@@ -9,7 +9,6 @@ import com.authbase.domain.Role;
 import com.authbase.domain.User;
 import com.authbase.helpers.UserProfiles;
 import com.authbase.error.ApiException;
-import com.authbase.gym.GymTimes;
 import com.authbase.security.PasswordHasher;
 import com.authbase.security.PasswordPolicy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -29,18 +28,15 @@ public class UserService {
     private final PasswordHasher passwordHasher;
     private final PasswordPolicy passwordPolicy;
     private final WeightService weightService;
-    private final AttendanceService attendanceService;
 
     public UserService(
             PasswordHasher passwordHasher,
             PasswordPolicy passwordPolicy,
-            WeightService weightService,
-            AttendanceService attendanceService
+            WeightService weightService
     ) {
         this.passwordHasher = passwordHasher;
         this.passwordPolicy = passwordPolicy;
         this.weightService = weightService;
-        this.attendanceService = attendanceService;
     }
 
     public UserPageResponse list(String q, int page, int size, Boolean enabled, Role role) {
@@ -148,7 +144,7 @@ public class UserService {
                     request.socialLinks(),
                     request.certifications()
             );
-            if (user.role.isStudent() && attendanceService.wasPresent(user.id, GymTimes.today())) {
+            if (user.role.isStudent()) {
                 weightService.record(user, user.weightKg, null);
             }
         }

@@ -72,7 +72,25 @@ public class AttendanceService {
     }
 
     @Transactional
-    public AttendanceResponse checkIn(User actor, String studentId) {
+    public AttendanceResponse checkIn(User actor, String studentId, LocalDate fecha) {
+        LocalDate today = GymTimes.today();
+        LocalDate date = fecha == null ? today : fecha;
+        if (date.isAfter(today)) {
+            throw ApiException.badRequest("FECHA_FUTURA", "No podés marcar presente en un día que todavía no llegó");
+        }
+        if (date.isBefore(today.minusDays(7))) {
+            throw ApiException.badRequest(
+                    "FECHA_ANTIGUA",
+                    "No podés marcar presente con más de una semana de antigüedad"
+            );
+        }
+        if (!date.equals(today)) {
+            return checkInPast(actor, studentId, date);
+        }
+        return checkInToday(actor, studentId);
+    }
+
+    private AttendanceResponse checkInToday(User actor, String studentId) {
         User student = resolveStudent(actor, studentId);
         if (openToday(student.id) != null) {
             throw ApiException.conflict(
@@ -111,6 +129,20 @@ public class AttendanceService {
         for (ClassBooking booking : bookings) {
             booking.status = BookingStatus.ASISTIO;
         }
+        return toResponse(log);
+    }
+
+    private AttendanceResponse checkInPast(User actor, String studentId, LocalDate date) {
+        User student = resolveStudent(actor, studentId);
+        if (wasPresent(student.id, date)) {
+            throw ApiException.conflict("YA_PRESENTE", "Ese día ya tiene el presente cargado");
+        }
+        Instant at = date.atTime(12, 0).atZone(GymTimes.ZONE).toInstant();
+        AttendanceLog log = new AttendanceLog();
+        log.student = student;
+        log.checkInTime = at;
+        log.checkOutTime = at;
+        log.persist();
         return toResponse(log);
     }
 

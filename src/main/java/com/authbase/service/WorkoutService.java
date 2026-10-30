@@ -24,10 +24,12 @@ public class WorkoutService {
 
     private final ExerciseService exerciseService;
     private final RoutineService routineService;
+    private final AttendanceService attendanceService;
 
-    public WorkoutService(ExerciseService exerciseService, RoutineService routineService) {
+    public WorkoutService(ExerciseService exerciseService, RoutineService routineService, AttendanceService attendanceService) {
         this.exerciseService = exerciseService;
         this.routineService = routineService;
+        this.attendanceService = attendanceService;
     }
 
     public List<WorkoutLogResponse> list(User actor, String studentId, String exerciseId, LocalDate from, LocalDate to) {
@@ -76,6 +78,12 @@ public class WorkoutService {
                 ? Instant.now()
                 : date.atTime(12, 0).atZone(GymTimes.ZONE).toInstant();
         applyDay(log, routine, request.dayNumber(), request.dayLabel());
+        if (actor.role.isStudent() && !attendanceService.wasPresent(actor.id, date)) {
+            throw ApiException.badRequest(
+                    "SIN_PRESENTE",
+                    "Para cargar los ejercicios tenés que marcar el presente de ese día primero"
+            );
+        }
         log.persist();
         return toResponse(log);
     }

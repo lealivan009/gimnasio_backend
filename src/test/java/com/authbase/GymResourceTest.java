@@ -457,33 +457,57 @@ class GymResourceTest {
                 .statusCode(400)
                 .body("message", equalTo("Elegí qué día de la rutina estás haciendo"));
 
-        given()
-                .header("Authorization", "Bearer " + student)
-                .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "exerciseId": "%s",
-                          "routineId": "%s",
-                          "setNumber": 1,
-                          "repsCompleted": 10,
-                          "weightKg": 30,
-                          "dayNumber": 2
-                        }
-                        """.formatted(backId, routineId))
+        List<Map<String, Object>> originalHours = given()
+                .header("Authorization", "Bearer " + admin)
                 .when()
-                .post("/api/registros-entrenamiento")
+                .get("/api/gimnasio/config")
                 .then()
                 .statusCode(200)
-                .body("dayLabel", equalTo("Espalda y tríceps"))
-                .body("dayNumber", equalTo(2));
+                .extract()
+                .path("hours");
+        List<Map<String, Object>> openAllDay = new ArrayList<>();
+        for (int day = 1; day <= 7; day++) {
+            openAllDay.add(Map.of("dayOfWeek", day, "opensAt", "00:00", "closesAt", "23:59"));
+        }
+        try {
+            putHours(admin, openAllDay);
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .when()
+                    .post("/api/asistencia/ingreso")
+                    .then()
+                    .statusCode(200);
 
-        given()
-                .header("Authorization", "Bearer " + student)
-                .when()
-                .get("/api/estadisticas/calendario?year=" + today.getYear() + "&month=" + today.getMonthValue())
-                .then()
-                .statusCode(200)
-                .body("find { it.date == '%s' }.sessions[0].label".formatted(today), equalTo("Espalda y tríceps"));
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .contentType(ContentType.JSON)
+                    .body("""
+                            {
+                              "exerciseId": "%s",
+                              "routineId": "%s",
+                              "setNumber": 1,
+                              "repsCompleted": 10,
+                              "weightKg": 30,
+                              "dayNumber": 2
+                            }
+                            """.formatted(backId, routineId))
+                    .when()
+                    .post("/api/registros-entrenamiento")
+                    .then()
+                    .statusCode(200)
+                    .body("dayLabel", equalTo("Espalda y tríceps"))
+                    .body("dayNumber", equalTo(2));
+
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .when()
+                    .get("/api/estadisticas/calendario?year=" + today.getYear() + "&month=" + today.getMonthValue())
+                    .then()
+                    .statusCode(200)
+                    .body("find { it.date == '%s' }.sessions[0].label".formatted(today), equalTo("Espalda y tríceps"));
+        } finally {
+            putHours(admin, originalHours);
+        }
     }
 
     @Test
@@ -589,6 +613,32 @@ class GymResourceTest {
                 .when()
                 .post("/api/registros-entrenamiento")
                 .then()
+                .statusCode(400)
+                .body("message", equalTo("Para cargar los ejercicios tenés que marcar el presente de ese día primero"));
+
+        given()
+                .header("Authorization", "Bearer " + student)
+                .when()
+                .post("/api/asistencia/ingreso?fecha=" + today.minusDays(3))
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + student)
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "exerciseId": "%s",
+                          "routineId": "%s",
+                          "setNumber": 1,
+                          "repsCompleted": 5,
+                          "weightKg": 60,
+                          "loggedDate": "%s"
+                        }
+                        """.formatted(exerciseId, routineId, today.minusDays(3)))
+                .when()
+                .post("/api/registros-entrenamiento")
+                .then()
                 .statusCode(200);
 
         List<Map<String, Object>> originalHours = given()
@@ -620,6 +670,62 @@ class GymResourceTest {
                     .then()
                     .statusCode(409);
 
+            String yesterday = today.minusDays(1).toString();
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .when()
+                    .post("/api/asistencia/ingreso?fecha=" + yesterday)
+                    .then()
+                    .statusCode(200)
+                    .body("checkOutTime", notNullValue());
+
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .when()
+                    .post("/api/asistencia/ingreso?fecha=" + yesterday)
+                    .then()
+                    .statusCode(409)
+                    .body("message", equalTo("Ese día ya tiene el presente cargado"));
+
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .when()
+                    .post("/api/asistencia/ingreso?fecha=" + today.minusDays(8))
+                    .then()
+                    .statusCode(400)
+                    .body("message", equalTo("No podés marcar presente con más de una semana de antigüedad"));
+
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .when()
+                    .post("/api/asistencia/ingreso?fecha=" + today.plusDays(1))
+                    .then()
+                    .statusCode(400)
+                    .body("message", equalTo("No podés marcar presente en un día que todavía no llegó"));
+
+            given()
+                    .header("Authorization", "Bearer " + admin)
+                    .when()
+                    .post("/api/asistencia/ingreso?studentId=" + studentId + "&fecha=" + today.minusDays(2))
+                    .then()
+                    .statusCode(200)
+                    .body("checkOutTime", notNullValue());
+
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .contentType(ContentType.JSON)
+                    .body("""
+                            {
+                              "weightKg": 80.0,
+                              "recordedOn": "%s"
+                            }
+                            """.formatted(yesterday))
+                    .when()
+                    .post("/api/peso")
+                    .then()
+                    .statusCode(200)
+                    .body("weightKg", equalTo(80.0f));
+
             given()
                     .header("Authorization", "Bearer " + student)
                     .contentType(ContentType.JSON)
@@ -632,8 +738,23 @@ class GymResourceTest {
                     .when()
                     .post("/api/peso")
                     .then()
+                    .statusCode(200)
+                    .body("weightKg", equalTo(81.5f));
+
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .contentType(ContentType.JSON)
+                    .body("""
+                            {
+                              "weightKg": 82.0,
+                              "recordedOn": "%s"
+                            }
+                            """.formatted(today.plusDays(1)))
+                    .when()
+                    .post("/api/peso")
+                    .then()
                     .statusCode(400)
-                    .body("message", equalTo("Solo podés cargar el peso los días que tuviste presente"));
+                    .body("message", equalTo("La fecha del peso no puede ser futura"));
 
             given()
                     .header("Authorization", "Bearer " + student)

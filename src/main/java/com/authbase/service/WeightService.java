@@ -16,12 +16,6 @@ import java.util.List;
 @ApplicationScoped
 public class WeightService {
 
-    private final AttendanceService attendanceService;
-
-    public WeightService(AttendanceService attendanceService) {
-        this.attendanceService = attendanceService;
-    }
-
     public List<WeightLogResponse> list(User actor, String studentId) {
         String ownerId = owner(actor, studentId);
         List<WeightLog> logs = WeightLog.list("student.id = ?1 order by recordedOn, createdAt", ownerId);
@@ -44,12 +38,6 @@ public class WeightService {
         LocalDate date = recordedOn == null ? GymTimes.today() : recordedOn;
         if (date.isAfter(GymTimes.today())) {
             throw ApiException.badRequest("FECHA_FUTURA", "La fecha del peso no puede ser futura");
-        }
-        if (!attendanceService.wasPresent(student.id, date)) {
-            throw ApiException.badRequest(
-                    "SIN_PRESENTE",
-                    "Solo podés cargar el peso los días que tuviste presente"
-            );
         }
         WeightLog sameDay = WeightLog.find(
                 "student.id = ?1 and recordedOn = ?2 and weightKg = ?3",

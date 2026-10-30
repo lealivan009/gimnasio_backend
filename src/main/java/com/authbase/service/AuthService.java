@@ -23,7 +23,6 @@ import com.authbase.security.PasswordPolicy;
 import com.authbase.security.TokenService;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
-import com.authbase.gym.GymTimes;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
@@ -42,7 +41,6 @@ public class AuthService {
     private final SettingsService settingsService;
     private final MailService mailService;
     private final WeightService weightService;
-    private final AttendanceService attendanceService;
 
     public AuthService(
             AuthProperties properties,
@@ -52,8 +50,7 @@ public class AuthService {
             JwtIssuer jwtIssuer,
             SettingsService settingsService,
             MailService mailService,
-            WeightService weightService,
-            AttendanceService attendanceService
+            WeightService weightService
     ) {
         this.properties = properties;
         this.passwordHasher = passwordHasher;
@@ -63,7 +60,6 @@ public class AuthService {
         this.settingsService = settingsService;
         this.mailService = mailService;
         this.weightService = weightService;
-        this.attendanceService = attendanceService;
     }
 
     @Transactional
@@ -219,7 +215,7 @@ public class AuthService {
                 request.socialLinks(),
                 request.certifications()
         );
-        if (user.role.isStudent() && attendanceService.wasPresent(user.id, GymTimes.today())) {
+        if (user.role.isStudent()) {
             weightService.record(user, user.weightKg, null);
         }
         return UserResponse.from(user);

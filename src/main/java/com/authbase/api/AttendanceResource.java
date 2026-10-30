@@ -53,8 +53,11 @@ public class AttendanceResource {
 
     @POST
     @Path("/ingreso")
-    public AttendanceResponse checkIn(@QueryParam("studentId") String studentId) {
-        return attendanceService.checkIn(currentUser.require(), studentId);
+    public AttendanceResponse checkIn(
+            @QueryParam("studentId") String studentId,
+            @QueryParam("fecha") LocalDate fecha
+    ) {
+        return attendanceService.checkIn(currentUser.require(), studentId, fecha);
     }
 
     @POST
