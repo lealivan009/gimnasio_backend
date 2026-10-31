@@ -670,6 +670,21 @@ class GymResourceTest {
                     .then()
                     .statusCode(409);
 
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .when()
+                    .post("/api/asistencia/egreso")
+                    .then()
+                    .statusCode(200);
+
+            given()
+                    .header("Authorization", "Bearer " + student)
+                    .when()
+                    .post("/api/asistencia/ingreso")
+                    .then()
+                    .statusCode(409)
+                    .body("message", equalTo("Hoy ya marcaste el presente"));
+
             String yesterday = today.minusDays(1).toString();
             given()
                     .header("Authorization", "Bearer " + student)

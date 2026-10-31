@@ -97,7 +97,15 @@ public class AttendanceService {
                     "YA_ADENTRO",
                     actor.role.isStaff()
                             ? "Ese alumno ya está adentro"
-                            : "Ya registraste tu ingreso y todavía no marcaste la salida"
+                            : "Hoy ya marcaste el presente"
+            );
+        }
+        if (wasPresent(student.id, GymTimes.today())) {
+            throw ApiException.conflict(
+                    "YA_PRESENTE",
+                    actor.role.isStaff()
+                            ? "Ese alumno ya tiene el presente de hoy"
+                            : "Hoy ya marcaste el presente"
             );
         }
         GymConfig config = GymConfig.current();
