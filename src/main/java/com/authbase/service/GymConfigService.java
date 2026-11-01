@@ -65,6 +65,13 @@ public class GymConfigService {
         return GymOpeningHour.count("dayOfWeek = ?1", date.getDayOfWeek().getValue()) > 0;
     }
 
+    public LocalTime firstOpen(LocalDate date) {
+        GymOpeningHour row = GymOpeningHour
+                .find("dayOfWeek = ?1 order by opensAt asc", date.getDayOfWeek().getValue())
+                .firstResult();
+        return row == null ? LocalTime.NOON : row.opensAt;
+    }
+
     public boolean isOpenAt(LocalDate date, LocalTime time) {
         int day = date.getDayOfWeek().getValue();
         List<GymOpeningHour> rows = GymOpeningHour.list("dayOfWeek = ?1", day);

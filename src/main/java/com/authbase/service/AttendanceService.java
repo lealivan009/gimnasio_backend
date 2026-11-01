@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @ApplicationScoped
@@ -148,11 +149,11 @@ public class AttendanceService {
         if (!gymConfigService.opensOn(date)) {
             throw ApiException.badRequest("GIMNASIO_CERRADO", "Ese día el gimnasio está cerrado");
         }
-        Instant at = date.atTime(12, 0).atZone(GymTimes.ZONE).toInstant();
+        Instant checkIn = date.atTime(gymConfigService.firstOpen(date)).atZone(GymTimes.ZONE).toInstant();
         AttendanceLog log = new AttendanceLog();
         log.student = student;
-        log.checkInTime = at;
-        log.checkOutTime = at;
+        log.checkInTime = checkIn;
+        log.checkOutTime = checkIn.plus(1, ChronoUnit.HOURS);
         log.persist();
         return toResponse(log);
     }
