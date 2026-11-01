@@ -58,6 +58,13 @@ public class GymConfigService {
         return isOpenAt(GymTimes.today(), LocalTime.now(GymTimes.ZONE));
     }
 
+    public boolean opensOn(LocalDate date) {
+        if (GymOpeningHour.count() == 0) {
+            return true;
+        }
+        return GymOpeningHour.count("dayOfWeek = ?1", date.getDayOfWeek().getValue()) > 0;
+    }
+
     public boolean isOpenAt(LocalDate date, LocalTime time) {
         int day = date.getDayOfWeek().getValue();
         List<GymOpeningHour> rows = GymOpeningHour.list("dayOfWeek = ?1", day);
