@@ -4,5 +4,6 @@ public enum GymTheme {
     ENERGIA,
     NEON,
     DEPORTE,
-    ELECTRICO
+    ELECTRICO,
+    ROSA
 }
