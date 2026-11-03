@@ -10,6 +10,7 @@ import com.authbase.api.dto.GymDtos.RoutineExerciseResponse;
 import com.authbase.api.dto.GymDtos.RoutineResponse;
 import com.authbase.api.dto.GymDtos.UpsertRoutineRequest;
 import com.authbase.domain.Exercise;
+import com.authbase.domain.ExerciseMeasure;
 import com.authbase.domain.Routine;
 import com.authbase.domain.RoutineExercise;
 import com.authbase.domain.StudentRoutineAssignment;
@@ -346,6 +347,15 @@ public class RoutineService {
         int index = 0;
         for (RoutineExerciseInput input : inputs) {
             Exercise exercise = exerciseService.require(input.exerciseId());
+            int repLimit = ExerciseMeasure.orPeso(exercise.measure) == ExerciseMeasure.TIEMPO ? 7200 : 999;
+            if (input.targetReps() > repLimit) {
+                throw ApiException.badRequest(
+                        "OBJETIVO_INVALIDO",
+                        ExerciseMeasure.orPeso(exercise.measure) == ExerciseMeasure.TIEMPO
+                                ? "El tiempo no puede superar 2 horas"
+                                : "Las repeticiones no pueden superar 999"
+                );
+            }
             int number = dayNumber(input.dayNumber());
             RoutineExercise item = new RoutineExercise();
             item.routine = routine;
@@ -421,7 +431,8 @@ public class RoutineService {
                         item.targetRestSeconds,
                         item.notes,
                         item.dayNumber == null || item.dayNumber < 1 ? 1 : item.dayNumber,
-                        item.dayLabel
+                        item.dayLabel,
+                        ExerciseMeasure.orPeso(item.exercise.measure)
                 ))
                 .toList();
         return new RoutineResponse(

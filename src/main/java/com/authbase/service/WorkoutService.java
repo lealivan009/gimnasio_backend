@@ -3,6 +3,7 @@ package com.authbase.service;
 import com.authbase.api.dto.GymDtos.CreateWorkoutLogRequest;
 import com.authbase.api.dto.GymDtos.WorkoutLogResponse;
 import com.authbase.domain.Exercise;
+import com.authbase.domain.ExerciseMeasure;
 import com.authbase.domain.Routine;
 import com.authbase.domain.RoutineExercise;
 import com.authbase.domain.User;
@@ -12,6 +13,7 @@ import com.authbase.gym.GymTimes;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -71,8 +73,19 @@ public class WorkoutService {
         log.exercise = exercise;
         log.routine = routine;
         log.setNumber = request.setNumber();
-        log.repsCompleted = request.repsCompleted();
-        log.weightKg = request.weightKg();
+        if (ExerciseMeasure.orPeso(exercise.measure) == ExerciseMeasure.TIEMPO) {
+            if (request.repsCompleted() < 1) {
+                throw ApiException.badRequest("TIEMPO_REQUERIDO", "Indicá cuántos segundos hiciste");
+            }
+            log.repsCompleted = request.repsCompleted();
+            log.weightKg = BigDecimal.ZERO;
+        } else {
+            if (request.repsCompleted() > 999) {
+                throw ApiException.badRequest("REPS_INVALIDAS", "Las repeticiones no pueden superar 999");
+            }
+            log.repsCompleted = request.repsCompleted();
+            log.weightKg = request.weightKg();
+        }
         log.rpe = request.rpe();
         log.loggedAt = date.equals(GymTimes.today())
                 ? Instant.now()

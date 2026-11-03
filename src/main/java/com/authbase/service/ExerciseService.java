@@ -3,6 +3,7 @@ package com.authbase.service;
 import com.authbase.api.dto.GymDtos.ExerciseResponse;
 import com.authbase.api.dto.GymDtos.UpsertExerciseRequest;
 import com.authbase.domain.Exercise;
+import com.authbase.domain.ExerciseMeasure;
 import com.authbase.domain.MuscleGroup;
 import com.authbase.domain.RoutineExercise;
 import com.authbase.domain.WorkoutLog;
@@ -87,6 +88,11 @@ public class ExerciseService {
             );
         }
         exercise.videoUrl = video;
+        if (request.measure() != null) {
+            exercise.measure = request.measure();
+        } else if (exercise.measure == null) {
+            exercise.measure = ExerciseMeasure.PESO;
+        }
     }
 
     private ExerciseResponse toResponse(Exercise exercise) {
@@ -96,7 +102,8 @@ public class ExerciseService {
                 exercise.description,
                 exercise.muscleGroup,
                 exercise.videoUrl,
-                exercise.createdAt
+                exercise.createdAt,
+                ExerciseMeasure.orPeso(exercise.measure)
         );
     }
 

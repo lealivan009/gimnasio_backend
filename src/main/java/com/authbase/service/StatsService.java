@@ -7,6 +7,7 @@ import com.authbase.api.dto.GymDtos.PersonalRecordResponse;
 import com.authbase.api.dto.GymDtos.StatsSummaryResponse;
 import com.authbase.api.dto.GymDtos.StudentFollowResponse;
 import com.authbase.domain.AttendanceLog;
+import com.authbase.domain.ExerciseMeasure;
 import com.authbase.domain.Role;
 import com.authbase.domain.StudentRoutineAssignment;
 import com.authbase.domain.User;
@@ -55,14 +56,22 @@ public class StatsService {
             if (day.get(weeks.weekBasedYear()) == thisWeekYear && day.get(weeks.weekOfWeekBasedYear()) == thisWeek) {
                 workoutsThisWeek++;
             }
+            boolean timed = ExerciseMeasure.orPeso(log.exercise.measure) == ExerciseMeasure.TIEMPO;
             PersonalRecordResponse current = records.get(log.exercise.id);
-            if (current == null || log.weightKg.compareTo(current.maxWeightKg()) > 0
-                    || (log.weightKg.compareTo(current.maxWeightKg()) == 0 && log.loggedAt.isBefore(current.achievedAt()))) {
+            boolean better = current == null
+                    || (timed
+                    ? log.repsCompleted > current.maxSeconds()
+                    || (log.repsCompleted == current.maxSeconds() && log.loggedAt.isBefore(current.achievedAt()))
+                    : log.weightKg.compareTo(current.maxWeightKg()) > 0
+                    || (log.weightKg.compareTo(current.maxWeightKg()) == 0 && log.loggedAt.isBefore(current.achievedAt())));
+            if (better && (!timed || log.repsCompleted > 0)) {
                 records.put(log.exercise.id, new PersonalRecordResponse(
                         log.exercise.id,
                         log.exercise.name,
-                        log.weightKg,
-                        log.loggedAt
+                        timed ? BigDecimal.ZERO : log.weightKg,
+                        log.loggedAt,
+                        timed ? ExerciseMeasure.TIEMPO : ExerciseMeasure.PESO,
+                        timed ? log.repsCompleted : null
                 ));
             }
         }
@@ -83,7 +92,20 @@ public class StatsService {
                 .count();
 
         List<PersonalRecordResponse> ordered = records.values().stream()
-                .sorted(Comparator.comparing(PersonalRecordResponse::maxWeightKg).reversed())
+                .sorted((left, right) -> {
+                    boolean leftTimed = left.measure() == ExerciseMeasure.TIEMPO;
+                    boolean rightTimed = right.measure() == ExerciseMeasure.TIEMPO;
+                    if (leftTimed != rightTimed) {
+                        return leftTimed ? 1 : -1;
+                    }
+                    if (leftTimed) {
+                        return Integer.compare(
+                                right.maxSeconds() == null ? 0 : right.maxSeconds(),
+                                left.maxSeconds() == null ? 0 : left.maxSeconds()
+                        );
+                    }
+                    return right.maxWeightKg().compareTo(left.maxWeightKg());
+                })
                 .toList();
         return new StatsSummaryResponse(streak, workoutsThisWeek, (int) attendanceDays, ordered);
     }
@@ -101,9 +123,15 @@ public class StatsService {
             LocalDate day = GymTimes.toLocalDate(log.loggedAt);
             DayBucket bucket = buckets.computeIfAbsent(day, key -> new DayBucket());
             bucket.sets++;
-            bucket.volume = bucket.volume.add(log.weightKg.multiply(BigDecimal.valueOf(log.repsCompleted)));
-            if (log.weightKg.compareTo(bucket.maxWeight) > 0) {
-                bucket.maxWeight = log.weightKg;
+            if (ExerciseMeasure.orPeso(log.exercise.measure) == ExerciseMeasure.TIEMPO) {
+                if (log.repsCompleted > bucket.maxSeconds) {
+                    bucket.maxSeconds = log.repsCompleted;
+                }
+            } else {
+                bucket.volume = bucket.volume.add(log.weightKg.multiply(BigDecimal.valueOf(log.repsCompleted)));
+                if (log.weightKg.compareTo(bucket.maxWeight) > 0) {
+                    bucket.maxWeight = log.weightKg;
+                }
             }
         }
         return buckets.entrySet().stream()
@@ -112,7 +140,8 @@ public class StatsService {
                         entry.getKey(),
                         entry.getValue().maxWeight,
                         entry.getValue().volume,
-                        entry.getValue().sets
+                        entry.getValue().sets,
+                        entry.getValue().maxSeconds
                 ))
                 .toList();
     }
@@ -223,5 +252,6 @@ public class StatsService {
         private BigDecimal maxWeight = BigDecimal.ZERO;
         private BigDecimal volume = BigDecimal.ZERO;
         private int sets;
+        private int maxSeconds;
     }
 }

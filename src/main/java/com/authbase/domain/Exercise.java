@@ -31,6 +31,10 @@ public class Exercise extends PanacheEntityBase {
     @Column(name = "muscle_group", nullable = false, length = 32)
     public MuscleGroup muscleGroup;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "measure", length = 16)
+    public ExerciseMeasure measure;
+
     @Column(name = "video_url", length = 500)
     public String videoUrl;
 

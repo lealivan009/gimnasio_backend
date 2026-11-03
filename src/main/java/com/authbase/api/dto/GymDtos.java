@@ -1,6 +1,7 @@
 package com.authbase.api.dto;
 
 import com.authbase.domain.BookingStatus;
+import com.authbase.domain.ExerciseMeasure;
 import com.authbase.domain.GymTheme;
 import com.authbase.domain.MuscleGroup;
 import com.authbase.domain.OperatingMode;
@@ -105,7 +106,8 @@ public final class GymDtos {
             String description,
             MuscleGroup muscleGroup,
             String videoUrl,
-            Instant createdAt
+            Instant createdAt,
+            ExerciseMeasure measure
     ) {
     }
 
@@ -118,7 +120,8 @@ public final class GymDtos {
             @NotNull(message = "El grupo muscular es obligatorio")
             MuscleGroup muscleGroup,
             @Size(max = 500, message = "El enlace del video es demasiado largo")
-            String videoUrl
+            String videoUrl,
+            ExerciseMeasure measure
     ) {
     }
 
@@ -192,8 +195,8 @@ public final class GymDtos {
             @Min(value = 1, message = "Las series tienen que ser al menos 1")
             @Max(value = 30, message = "Las series no pueden superar 30")
             int targetSets,
-            @Min(value = 1, message = "Las repeticiones tienen que ser al menos 1")
-            @Max(value = 999, message = "Las repeticiones no pueden superar 999")
+            @Min(value = 1, message = "El objetivo tiene que ser al menos 1")
+            @Max(value = 7200, message = "El objetivo no puede superar 2 horas")
             int targetReps,
             @Min(value = 0, message = "El descanso no puede ser negativo")
             @Max(value = 900, message = "El descanso no puede superar 900 segundos")
@@ -219,7 +222,8 @@ public final class GymDtos {
             int targetRestSeconds,
             String notes,
             int dayNumber,
-            String dayLabel
+            String dayLabel,
+            ExerciseMeasure measure
     ) {
     }
 
@@ -298,8 +302,8 @@ public final class GymDtos {
             @Min(value = 1, message = "El número de serie tiene que ser al menos 1")
             @Max(value = 99, message = "El número de serie no puede superar 99")
             int setNumber,
-            @Min(value = 0, message = "Las repeticiones no pueden ser negativas")
-            @Max(value = 999, message = "Las repeticiones no pueden superar 999")
+            @Min(value = 0, message = "El valor no puede ser negativo")
+            @Max(value = 7200, message = "El valor no puede superar 2 horas")
             int repsCompleted,
             @NotNull(message = "El peso es obligatorio")
             @DecimalMin(value = "0.0", message = "El peso no puede ser negativo")
@@ -347,7 +351,8 @@ public final class GymDtos {
             LocalDate date,
             BigDecimal maxWeightKg,
             BigDecimal volumeKg,
-            int sets
+            int sets,
+            Integer maxSeconds
     ) {
     }
 
@@ -355,7 +360,9 @@ public final class GymDtos {
             String exerciseId,
             String exerciseName,
             BigDecimal maxWeightKg,
-            Instant achievedAt
+            Instant achievedAt,
+            ExerciseMeasure measure,
+            Integer maxSeconds
     ) {
     }
 
