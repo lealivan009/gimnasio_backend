@@ -302,8 +302,8 @@ public final class GymDtos {
             @Min(value = 1, message = "El número de serie tiene que ser al menos 1")
             @Max(value = 99, message = "El número de serie no puede superar 99")
             int setNumber,
-            @Min(value = 0, message = "El valor no puede ser negativo")
-            @Max(value = 7200, message = "El valor no puede superar 2 horas")
+            @Min(value = 0, message = "Las repeticiones no pueden ser negativas")
+            @Max(value = 999, message = "Las repeticiones no pueden superar 999")
             int repsCompleted,
             @NotNull(message = "El peso es obligatorio")
             @DecimalMin(value = "0.0", message = "El peso no puede ser negativo")
@@ -317,7 +317,10 @@ public final class GymDtos {
             Integer dayNumber,
             @Size(max = 80, message = "El nombre del día es demasiado largo")
             String dayLabel,
-            LocalDate loggedDate
+            LocalDate loggedDate,
+            @Min(value = 1, message = "El tiempo tiene que ser al menos 1 segundo")
+            @Max(value = 7200, message = "El tiempo no puede superar 2 horas")
+            Integer durationSeconds
     ) {
     }
 
@@ -334,7 +337,8 @@ public final class GymDtos {
             String routineId,
             LocalDate loggedDate,
             Integer dayNumber,
-            String dayLabel
+            String dayLabel,
+            Integer durationSeconds
     ) {
     }
 

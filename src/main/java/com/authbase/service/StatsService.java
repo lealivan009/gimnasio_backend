@@ -60,18 +60,18 @@ public class StatsService {
             PersonalRecordResponse current = records.get(log.exercise.id);
             boolean better = current == null
                     || (timed
-                    ? log.repsCompleted > current.maxSeconds()
-                    || (log.repsCompleted == current.maxSeconds() && log.loggedAt.isBefore(current.achievedAt()))
+                    ? secondsOf(log) > current.maxSeconds()
+                    || (secondsOf(log) == current.maxSeconds() && log.loggedAt.isBefore(current.achievedAt()))
                     : log.weightKg.compareTo(current.maxWeightKg()) > 0
                     || (log.weightKg.compareTo(current.maxWeightKg()) == 0 && log.loggedAt.isBefore(current.achievedAt())));
-            if (better && (!timed || log.repsCompleted > 0)) {
+            if (better && (!timed || secondsOf(log) > 0)) {
                 records.put(log.exercise.id, new PersonalRecordResponse(
                         log.exercise.id,
                         log.exercise.name,
                         timed ? BigDecimal.ZERO : log.weightKg,
                         log.loggedAt,
                         timed ? ExerciseMeasure.TIEMPO : ExerciseMeasure.PESO,
-                        timed ? log.repsCompleted : null
+                        timed ? secondsOf(log) : null
                 ));
             }
         }
@@ -124,8 +124,8 @@ public class StatsService {
             DayBucket bucket = buckets.computeIfAbsent(day, key -> new DayBucket());
             bucket.sets++;
             if (ExerciseMeasure.orPeso(log.exercise.measure) == ExerciseMeasure.TIEMPO) {
-                if (log.repsCompleted > bucket.maxSeconds) {
-                    bucket.maxSeconds = log.repsCompleted;
+                if (secondsOf(log) > bucket.maxSeconds) {
+                    bucket.maxSeconds = secondsOf(log);
                 }
             } else {
                 bucket.volume = bucket.volume.add(log.weightKg.multiply(BigDecimal.valueOf(log.repsCompleted)));
@@ -246,6 +246,10 @@ public class StatsService {
         User student = User.findActiveById(studentId)
                 .orElseThrow(() -> ApiException.notFound("ALUMNO_NO_ENCONTRADO", "El alumno no existe"));
         return student.id;
+    }
+
+    private static int secondsOf(WorkoutLog log) {
+        return log.durationSeconds == null ? 0 : log.durationSeconds;
     }
 
     private static final class DayBucket {

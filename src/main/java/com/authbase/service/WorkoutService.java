@@ -74,10 +74,12 @@ public class WorkoutService {
         log.routine = routine;
         log.setNumber = request.setNumber();
         if (ExerciseMeasure.orPeso(exercise.measure) == ExerciseMeasure.TIEMPO) {
-            if (request.repsCompleted() < 1) {
+            Integer seconds = request.durationSeconds();
+            if (seconds == null || seconds < 1) {
                 throw ApiException.badRequest("TIEMPO_REQUERIDO", "Indicá cuántos segundos hiciste");
             }
-            log.repsCompleted = request.repsCompleted();
+            log.durationSeconds = seconds;
+            log.repsCompleted = 0;
             log.weightKg = BigDecimal.ZERO;
         } else {
             if (request.repsCompleted() > 999) {
@@ -85,6 +87,7 @@ public class WorkoutService {
             }
             log.repsCompleted = request.repsCompleted();
             log.weightKg = request.weightKg();
+            log.durationSeconds = null;
         }
         log.rpe = request.rpe();
         log.loggedAt = date.equals(GymTimes.today())
@@ -196,7 +199,8 @@ public class WorkoutService {
                 log.routine == null ? null : log.routine.id,
                 GymTimes.toLocalDate(log.loggedAt),
                 log.dayNumber,
-                log.dayLabel
+                log.dayLabel,
+                log.durationSeconds
         );
     }
 }

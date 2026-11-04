@@ -43,6 +43,9 @@ public class WorkoutLog extends PanacheEntityBase {
     @Column(name = "reps_completed", nullable = false)
     public int repsCompleted;
 
+    @Column(name = "duration_seconds")
+    public Integer durationSeconds;
+
     @Column(name = "weight_kg", nullable = false, precision = 6, scale = 2)
     public BigDecimal weightKg;
 

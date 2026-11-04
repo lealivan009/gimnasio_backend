@@ -19,6 +19,12 @@ import java.util.Map;
 @ApplicationScoped
 public class ExerciseService {
 
+    private final WorkoutDurationBackfill durationBackfill;
+
+    public ExerciseService(WorkoutDurationBackfill durationBackfill) {
+        this.durationBackfill = durationBackfill;
+    }
+
     public List<ExerciseResponse> list(String q, MuscleGroup muscleGroup) {
         StringBuilder where = new StringBuilder("1 = 1");
         Map<String, Object> params = new HashMap<>();
@@ -53,6 +59,9 @@ public class ExerciseService {
     public ExerciseResponse update(String id, UpsertExerciseRequest request) {
         Exercise exercise = require(id);
         apply(exercise, request);
+        if (ExerciseMeasure.orPeso(exercise.measure) == ExerciseMeasure.TIEMPO) {
+            durationBackfill.moveStoredReps(exercise.id);
+        }
         return toResponse(exercise);
     }
 
