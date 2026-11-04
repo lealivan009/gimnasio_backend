@@ -366,7 +366,8 @@ public final class GymDtos {
             BigDecimal maxWeightKg,
             Instant achievedAt,
             ExerciseMeasure measure,
-            Integer maxSeconds
+            Integer maxSeconds,
+            MuscleGroup muscleGroup
     ) {
     }
 

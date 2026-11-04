@@ -71,7 +71,8 @@ public class StatsService {
                         timed ? BigDecimal.ZERO : log.weightKg,
                         log.loggedAt,
                         timed ? ExerciseMeasure.TIEMPO : ExerciseMeasure.PESO,
-                        timed ? secondsOf(log) : null
+                        timed ? secondsOf(log) : null,
+                        log.exercise.muscleGroup
                 ));
             }
         }
