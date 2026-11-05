@@ -421,7 +421,8 @@ public final class GymDtos {
             LocalDate routineExpiration,
             boolean routineCustom,
             Instant lastCheckIn,
-            long attendanceLast30Days
+            long attendanceLast30Days,
+            String activeRoutineId
     ) {
     }
 }

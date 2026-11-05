@@ -229,7 +229,8 @@ public class StatsService {
                     assignment == null ? null : assignment.expirationDate,
                     assignment != null && assignment.routine.customStudent,
                     last,
-                    days
+                    days,
+                    assignment == null ? null : assignment.routine.id
             );
         }).toList();
     }
