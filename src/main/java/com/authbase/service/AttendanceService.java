@@ -8,7 +8,9 @@ import com.authbase.domain.GymConfig;
 import com.authbase.domain.User;
 import com.authbase.error.ApiException;
 import com.authbase.gym.GymTimes;
+import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
@@ -20,10 +22,21 @@ import java.util.List;
 @Transactional
 public class AttendanceService {
 
+    /** La visita se cierra sola: el presente ya incluye la salida, una hora y media después. */
+    static final int VISIT_MINUTES = 90;
+
     private final GymConfigService gymConfigService;
 
     public AttendanceService(GymConfigService gymConfigService) {
         this.gymConfigService = gymConfigService;
+    }
+
+    @Transactional
+    void closeOpenStays(@Observes StartupEvent event) {
+        List<AttendanceLog> open = AttendanceLog.list("checkOutTime is null");
+        for (AttendanceLog log : open) {
+            log.checkOutTime = plannedExit(log.checkInTime);
+        }
     }
 
     public List<AttendanceResponse> list(User actor, String studentId, LocalDate from, LocalDate to) {
@@ -56,9 +69,10 @@ public class AttendanceService {
             throw ApiException.forbidden("FORBIDDEN", "Solo el profesor puede ver quién está en el gimnasio");
         }
         List<AttendanceLog> logs = AttendanceLog.list(
-                "checkOutTime is null and checkInTime >= ?1 and checkInTime < ?2 order by checkInTime",
+                "checkInTime >= ?1 and checkInTime < ?2 and checkOutTime > ?3 order by checkInTime",
                 GymTimes.startOfDay(GymTimes.today()),
-                GymTimes.endOfDay(GymTimes.today())
+                GymTimes.endOfDay(GymTimes.today()),
+                Instant.now()
         );
         return logs.stream().map(this::toResponse).toList();
     }
@@ -115,9 +129,10 @@ public class AttendanceService {
         }
         if (gymConfigService.enforcesFloorCapacity(config.operatingMode)) {
             long inside = AttendanceLog.count(
-                    "checkOutTime is null and checkInTime >= ?1 and checkInTime < ?2",
+                    "checkInTime >= ?1 and checkInTime < ?2 and checkOutTime > ?3",
                     GymTimes.startOfDay(GymTimes.today()),
-                    GymTimes.endOfDay(GymTimes.today())
+                    GymTimes.endOfDay(GymTimes.today()),
+                    Instant.now()
             );
             if (inside >= config.maxCapacityPerSlot) {
                 throw ApiException.conflict("SIN_CAPACIDAD", "El gimnasio alcanzó la capacidad máxima");
@@ -127,6 +142,7 @@ public class AttendanceService {
         AttendanceLog log = new AttendanceLog();
         log.student = student;
         log.checkInTime = Instant.now();
+        log.checkOutTime = plannedExit(log.checkInTime);
         log.persist();
 
         List<ClassBooking> bookings = ClassBooking.list(
@@ -153,7 +169,7 @@ public class AttendanceService {
         AttendanceLog log = new AttendanceLog();
         log.student = student;
         log.checkInTime = checkIn;
-        log.checkOutTime = checkIn.plus(1, ChronoUnit.HOURS);
+        log.checkOutTime = plannedExit(checkIn);
         log.persist();
         return toResponse(log);
     }
@@ -203,6 +219,10 @@ public class AttendanceService {
                 GymTimes.startOfDay(GymTimes.today()),
                 GymTimes.endOfDay(GymTimes.today())
         ).firstResult();
+    }
+
+    private Instant plannedExit(Instant checkIn) {
+        return checkIn.plus(VISIT_MINUTES, ChronoUnit.MINUTES);
     }
 
     private boolean within(Instant instant, LocalDate from, LocalDate to) {

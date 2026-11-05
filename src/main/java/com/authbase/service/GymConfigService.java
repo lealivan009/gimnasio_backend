@@ -108,9 +108,10 @@ public class GymConfigService {
         GymConfig config = GymConfig.current();
         LocalDate today = GymTimes.today();
         long inside = AttendanceLog.count(
-                "checkOutTime is null and checkInTime >= ?1 and checkInTime < ?2",
+                "checkInTime >= ?1 and checkInTime < ?2 and checkOutTime > ?3",
                 GymTimes.startOfDay(today),
-                GymTimes.endOfDay(today)
+                GymTimes.endOfDay(today),
+                java.time.Instant.now()
         );
         boolean openNow = isOpenNow();
         return new OccupancyResponse(

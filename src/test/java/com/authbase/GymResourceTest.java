@@ -661,7 +661,8 @@ class GymResourceTest {
                     .when()
                     .post("/api/asistencia/ingreso")
                     .then()
-                    .statusCode(200);
+                    .statusCode(200)
+                    .body("checkOutTime", notNullValue());
 
             given()
                     .header("Authorization", "Bearer " + admin)
@@ -669,13 +670,6 @@ class GymResourceTest {
                     .post("/api/asistencia/ingreso?studentId=" + studentId)
                     .then()
                     .statusCode(409);
-
-            given()
-                    .header("Authorization", "Bearer " + student)
-                    .when()
-                    .post("/api/asistencia/egreso")
-                    .then()
-                    .statusCode(200);
 
             given()
                     .header("Authorization", "Bearer " + student)
