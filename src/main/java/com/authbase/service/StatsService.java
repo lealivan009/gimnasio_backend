@@ -132,6 +132,9 @@ public class StatsService {
                 bucket.volume = bucket.volume.add(log.weightKg.multiply(BigDecimal.valueOf(log.repsCompleted)));
                 if (log.weightKg.compareTo(bucket.maxWeight) > 0) {
                     bucket.maxWeight = log.weightKg;
+                    bucket.maxReps = log.repsCompleted;
+                } else if (log.weightKg.compareTo(bucket.maxWeight) == 0 && log.repsCompleted > bucket.maxReps) {
+                    bucket.maxReps = log.repsCompleted;
                 }
             }
         }
@@ -142,7 +145,8 @@ public class StatsService {
                         entry.getValue().maxWeight,
                         entry.getValue().volume,
                         entry.getValue().sets,
-                        entry.getValue().maxSeconds
+                        entry.getValue().maxSeconds,
+                        entry.getValue().maxReps
                 ))
                 .toList();
     }
@@ -259,5 +263,6 @@ public class StatsService {
         private BigDecimal volume = BigDecimal.ZERO;
         private int sets;
         private int maxSeconds;
+        private int maxReps;
     }
 }

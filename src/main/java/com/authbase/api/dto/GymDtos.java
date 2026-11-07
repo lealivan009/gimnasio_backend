@@ -356,7 +356,8 @@ public final class GymDtos {
             BigDecimal maxWeightKg,
             BigDecimal volumeKg,
             int sets,
-            Integer maxSeconds
+            Integer maxSeconds,
+            Integer maxReps
     ) {
     }
 
