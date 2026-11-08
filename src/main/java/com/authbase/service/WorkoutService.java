@@ -159,6 +159,22 @@ public class WorkoutService {
         if (!log.student.id.equals(actor.id) && !actor.role.isStaff()) {
             throw ApiException.forbidden("FORBIDDEN", "No podés borrar el registro de otra persona");
         }
+        LocalDate day = GymTimes.toLocalDate(log.loggedAt);
+        int ownDay = log.dayNumber == null || log.dayNumber < 1 ? 1 : log.dayNumber;
+        List<WorkoutLog> sameDay = WorkoutLog.list(
+                "student.id = ?1 and exercise.id = ?2 and loggedAt >= ?3 and loggedAt < ?4 and setNumber > ?5",
+                log.student.id,
+                log.exercise.id,
+                GymTimes.startOfDay(day),
+                GymTimes.endOfDay(day),
+                log.setNumber
+        );
+        for (WorkoutLog sibling : sameDay) {
+            int siblingDay = sibling.dayNumber == null || sibling.dayNumber < 1 ? 1 : sibling.dayNumber;
+            if (siblingDay == ownDay) {
+                sibling.setNumber = sibling.setNumber - 1;
+            }
+        }
         log.delete();
     }
 
